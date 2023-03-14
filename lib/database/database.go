@@ -7,6 +7,8 @@ import (
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+
+	S "eims/sql"
 )
 
 func NewDatabase(ctx context.Context) *Database {
@@ -30,23 +32,24 @@ func (db *Database) Open(driverName, url string) error {
 		return fmt.Errorf("failed to open database: %w", err)
 	}
 	db.DB = d
-	return nil
+	return db.DB.WithContext(db.ctx).AutoMigrate(&S.Department{}, &S.Employee{})
 }
 
 func (db *Database) Init() error {
-	// Init Database
-	initSqlSlice := parseInitSQL()
-	if initSqlSlice == nil || len(initSqlSlice) == 0 {
-		return nil
+	runCtx, runCancel := context.WithTimeout(db.ctx, 8*time.Second)
+	err := db.DB.WithContext(runCtx).Exec(S.AddDefaultDepartment).Error
+	runCancel()
+	if err != nil {
+		return fmt.Errorf("failed to init database: %w", err)
 	}
-	for _, s := range initSqlSlice {
-		ctx, cancel := context.WithTimeout(db.ctx, 10*time.Second)
-		err := db.DB.WithContext(ctx).Exec(s).Error
-		cancel()
-		if err != nil {
-			return fmt.Errorf("failed to init database: %w", err)
-		}
+	//
+	runCtx, runCancel = context.WithTimeout(db.ctx, 8*time.Second)
+	err = db.DB.WithContext(runCtx).Exec(S.AddDefaultEmployee).Error
+	runCancel()
+	if err != nil {
+		return fmt.Errorf("failed to init database: %w", err)
 	}
+	//
 	return nil
 }
 

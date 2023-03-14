@@ -5,6 +5,7 @@ import (
 	"eims/lib/cache"
 	"eims/lib/database"
 	"eims/lib/log"
+	"time"
 )
 
 type RunnginCtx struct {
@@ -14,3 +15,7 @@ type RunnginCtx struct {
 	Cache  cache.Cache
 	//
 }
+
+const (
+	sqlExecTimeout = 8 * time.Second
+)
